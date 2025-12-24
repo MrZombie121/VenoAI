@@ -1,6 +1,8 @@
 
 # VenoAI
 
+![VenoAI](assets/vENOi.png)
+
 VenoAI is a 3D-styled chatbot web app with email OTP auth, VCoins balance, upgradeable plans, a mini-game, and local AI support (Ollama + fallback).
 
 ## Stack
