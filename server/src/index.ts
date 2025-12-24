@@ -20,7 +20,7 @@ import {
   verifyCode
 } from './data.js';
 import { authMiddleware, sendCode, signToken } from './auth.js';
-import { generateReply } from './ai/venModel.js';
+import { generateReply, recordInteraction } from './ai/venModel.js';
 import { Plan } from './types.js';
 
 // Load environment variables from .env file
@@ -123,6 +123,7 @@ app.post('/api/ai/complete', authMiddleware, async (req: any, res) => {
     addMessage(user.id, chatId, 'user', prompt);
   }
   const reply = await generateReply(prompt, model);
+  await recordInteraction(prompt, reply);
   if (chatId && user) {
     addMessage(user.id, chatId, 'assistant', reply);
     touchChat(user.id, chatId);

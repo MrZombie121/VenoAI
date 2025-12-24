@@ -123,6 +123,28 @@ export async function generateReply(prompt: string, modelOverride?: string): Pro
   return buildTextReply(prompt, lang);
 }
 
+export async function recordInteraction(prompt: string, reply: string): Promise<void> {
+  const lang = detectLanguage(prompt);
+  const knowledge = loadKnowledge() || { lang: 'any', sentences: [] };
+  const next = Array.isArray(knowledge.sentences) ? knowledge.sentences.slice() : [];
+  const promptText = prompt.trim();
+  const replyText = reply.trim();
+  if (promptText) next.push(promptText);
+  if (replyText) next.push(replyText);
+  const deduped = Array.from(new Set(next));
+  const capped = deduped.slice(-5000);
+  const payload: Knowledge = {
+    lang: knowledge.lang === 'any' ? 'any' : lang,
+    sentences: capped
+  };
+  try {
+    fs.writeFileSync(KNOWLEDGE_PATH, JSON.stringify(payload, null, 2), 'utf-8');
+    cachedKnowledge = payload;
+  } catch {
+    // Ignore write errors to avoid breaking responses.
+  }
+}
+
 function buildTextReply(prompt: string, lang: Lang): string {
   const lower = prompt.toLowerCase();
   if (isPlannerPrompt(lower)) {
