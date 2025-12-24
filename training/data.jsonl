@@ -1,0 +1,3 @@
+{"instruction":"Say hello in Russian.","response":"Привет! Как я могу помочь?"}
+{"instruction":"Write a short plan for a productive day.","response":"Вот краткий план: 1) Определи 1-2 главные задачи. 2) Сделай глубокую работу 2 блока по 60-90 минут. 3) Перерывы каждые 60-90 минут. 4) Вечером подведи итоги и запланируй завтра."}
+{"instruction":"Explain what LoRA is in simple terms.","response":"LoRA — это метод дообучения большой модели с помощью небольших адаптеров. Он дешевле и быстрее полного обучения."}
