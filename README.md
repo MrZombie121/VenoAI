@@ -1,0 +1,2 @@
+# VenoAI
+VenoAI - simple AI
