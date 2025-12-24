@@ -1,4 +1,3 @@
-c:\Users\User\Desktop\vENOi.png
 
 # VenoAI
 
