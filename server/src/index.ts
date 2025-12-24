@@ -18,10 +18,10 @@ import {
   setPlan,
   touchChat,
   verifyCode
-} from './data';
-import { authMiddleware, sendCode, signToken } from './auth';
-import { generateReply } from './ai/venModel';
-import { Plan } from './types';
+} from './data.js';
+import { authMiddleware, sendCode, signToken } from './auth.js';
+import { generateReply } from './ai/venModel.js';
+import { Plan } from './types.js';
 
 // Load environment variables from .env file
 

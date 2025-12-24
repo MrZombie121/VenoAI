@@ -1,7 +1,7 @@
 import { v4 as uuid } from 'uuid';
 import crypto from 'crypto';
-import { Plan } from './types';
-import { readDb, writeDb } from './db';
+import { Plan } from './types.js';
+import { readDb, writeDb } from './db.js';
 
 export interface User {
   id: string;

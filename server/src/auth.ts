@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import nodemailer from 'nodemailer';
 import { findUserByEmail } from './data.js';
-import { SessionPayload } from './types';
+import { SessionPayload } from './types.js';
 
 const SECRET = process.env.JWT_SECRET || 'veno-dev-secret';
 
