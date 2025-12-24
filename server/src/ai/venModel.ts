@@ -54,14 +54,14 @@ const lexicon: Record<Lang, Lexicon> = {
 
 const fallbackReplies: Record<Lang, string[]> = {
   en: [
-    'Tell me the goal and a few constraints, and I will tailor the answer.',
-    'I can explain, draft a plan, or provide code. What do you need?',
-    'Share a bit more context and I will respond precisely.'
+    'Share the goal, constraints, and desired format, and I will tailor the answer.',
+    'I can deliver a plan, explanation, or code. Tell me what result you want.',
+    'Give a bit more context and I will respond with specifics.'
   ],
   ru: [
-    '\u041e\u043f\u0438\u0448\u0438 \u0437\u0430\u0434\u0430\u0447\u0443 \u0438 \u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u0438\u044f, \u0438 \u044f \u043f\u043e\u0434\u0441\u0442\u0440\u043e\u044e \u043e\u0442\u0432\u0435\u0442.',
-    '\u041c\u043e\u0433\u0443 \u043e\u0431\u044a\u044f\u0441\u043d\u0438\u0442\u044c, \u0434\u0430\u0442\u044c \u043f\u043b\u0430\u043d \u0438\u043b\u0438 \u043f\u0440\u0438\u043c\u0435\u0440 \u043a\u043e\u0434\u0430. \u0427\u0442\u043e \u0438\u043c\u0435\u043d\u043d\u043e \u043d\u0443\u0436\u043d\u043e?',
-    '\u0414\u0430\u0439 \u043d\u0435\u043c\u043d\u043e\u0433\u043e \u043a\u043e\u043d\u0442\u0435\u043a\u0441\u0442\u0430, \u0438 \u044f \u0442\u043e\u0447\u043d\u043e \u043e\u0442\u0432\u0435\u0447\u0443.'
+    '\u041e\u043f\u0438\u0448\u0438 \u0446\u0435\u043b\u044c, \u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u0438\u044f \u0438 \u043d\u0443\u0436\u043d\u044b\u0439 \u0444\u043e\u0440\u043c\u0430\u0442 \u043e\u0442\u0432\u0435\u0442\u0430.',
+    '\u041c\u043e\u0433\u0443 \u0434\u0430\u0442\u044c \u043f\u043b\u0430\u043d, \u043e\u0431\u044a\u044f\u0441\u043d\u0435\u043d\u0438\u0435 \u0438\u043b\u0438 \u043a\u043e\u0434. \u0421\u043a\u0430\u0436\u0438, \u043a\u0430\u043a\u043e\u0439 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442 \u043d\u0443\u0436\u0435\u043d.',
+    '\u0414\u0430\u0439 \u043d\u0435\u043c\u043d\u043e\u0433\u043e \u043a\u043e\u043d\u0442\u0435\u043a\u0441\u0442\u0430, \u0438 \u044f \u043e\u0442\u0432\u0435\u0447\u0443 \u0442\u043e\u0447\u043d\u043e \u0438 \u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u043d\u043e.'
   ]
 };
 
@@ -120,11 +120,24 @@ export async function generateReply(prompt: string, modelOverride?: string): Pro
     return knowledgeHit + ' ' + pick(lexicon[lang].closers);
   }
 
-  return buildTextReply(lang);
+  return buildTextReply(prompt, lang);
 }
 
-function buildTextReply(lang: Lang): string {
-  return pick(fallbackReplies[lang]);
+function buildTextReply(prompt: string, lang: Lang): string {
+  const lower = prompt.toLowerCase();
+  if (isPlannerPrompt(lower)) {
+    return buildPlannerReply(prompt, lang);
+  }
+  if (isExplainPrompt(lower)) {
+    return buildExplainReply(prompt, lang);
+  }
+  if (isIdeaPrompt(lower)) {
+    return buildIdeaReply(prompt, lang);
+  }
+  if (isHowToPrompt(lower)) {
+    return buildHowToReply(prompt, lang);
+  }
+  return seededPick(prompt, fallbackReplies[lang]);
 }
 
 function buildCodeReply(lang: Lang, codeLang: 'python' | 'csharp'): string {
@@ -148,6 +161,55 @@ function hasAny(text: string, tokens: string[]): boolean {
 function detectCodeLang(text: string): 'python' | 'csharp' {
   if (hasAny(text, ['c#', 'csharp', '\u0448\u0430\u0440\u043f', '\u0441\u0438 \u0448\u0430\u0440\u043f'])) return 'csharp';
   return 'python';
+}
+
+function isPlannerPrompt(text: string): boolean {
+  return hasAny(text, [
+    'plan',
+    'schedule',
+    'routine',
+    '\u043f\u043b\u0430\u043d',
+    '\u0440\u0430\u0441\u043f\u0438\u0441\u0430\u043d\u0438\u0435',
+    '\u043d\u0435\u0434\u0435\u043b\u044e',
+    '\u0434\u0435\u043d\u044c',
+    '\u0433\u0440\u0430\u0444\u0438\u043a'
+  ]);
+}
+
+function isExplainPrompt(text: string): boolean {
+  return hasAny(text, [
+    'explain',
+    'what is',
+    'meaning',
+    '\u043e\u0431\u044a\u044f\u0441\u043d\u0438',
+    '\u0447\u0442\u043e \u0442\u0430\u043a\u043e\u0435',
+    '\u043f\u043e\u044f\u0441\u043d\u0438',
+    '\u0441\u043c\u044b\u0441\u043b'
+  ]);
+}
+
+function isIdeaPrompt(text: string): boolean {
+  return hasAny(text, [
+    'idea',
+    'ideas',
+    'brainstorm',
+    '\u0438\u0434\u0435\u044f',
+    '\u0438\u0434\u0435\u0438',
+    '\u043f\u0440\u0438\u0434\u0443\u043c\u0430\u0439',
+    '\u043f\u0440\u0435\u0434\u043b\u043e\u0436\u0438'
+  ]);
+}
+
+function isHowToPrompt(text: string): boolean {
+  return hasAny(text, [
+    'how to',
+    'steps',
+    'guide',
+    '\u043a\u0430\u043a',
+    '\u0438\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u044f',
+    '\u0448\u0430\u0433\u0438',
+    '\u043f\u043e\u0448\u0430\u0433\u043e\u0432\u043e'
+  ]);
 }
 
 function isCreatorQuestion(text: string): boolean {
@@ -193,6 +255,143 @@ function buildCodeBlock(lang: 'python' | 'csharp'): string {
     '',
     'print(fetch_json(\"https://example.com/api\"))',
   ].join('\n');
+}
+
+function buildPlannerReply(prompt: string, lang: Lang): string {
+  const times = extractTimes(prompt);
+  if (lang === 'ru') {
+    if (times.length >= 2) {
+      const wake = times[0];
+      const sleep = times[times.length - 1];
+      return [
+        `\u0412\u043e\u0442 \u043f\u0440\u043e\u0441\u0442\u043e\u0439 \u0434\u043d\u0435\u0432\u043d\u043e\u0439 \u043f\u043b\u0430\u043d \u043e\u0442 ${wake} \u0434\u043e ${sleep}:`,
+        `- ${wake} \u2013 \u043f\u043e\u0434\u044a\u0435\u043c, \u0432\u043e\u0434\u0430, \u043b\u0435\u0433\u043a\u0430\u044f \u0440\u0430\u0437\u043c\u0438\u043d\u043a\u0430.`,
+        '- 08:00 \u2013 \u0433\u043b\u0430\u0432\u043d\u0430\u044f \u0437\u0430\u0434\u0430\u0447\u0430 \u0434\u043d\u044f (1 \u0431\u043b\u043e\u043a).',
+        '- 10:30 \u2013 \u043f\u0435\u0440\u0435\u0440\u044b\u0432 10\u201315 \u043c\u0438\u043d.',
+        '- 10:45 \u2013 \u0432\u0442\u043e\u0440\u043e\u0439 \u0431\u043b\u043e\u043a (2 \u0447\u0430\u0441\u0430).',
+        '- 13:00 \u2013 \u043e\u0431\u0435\u0434 + \u043f\u0440\u043e\u0433\u0443\u043b\u043a\u0430.',
+        '- 14:30 \u2013 \u043b\u0435\u0433\u043a\u0438\u0435 \u0437\u0430\u0434\u0430\u0447\u0438 / \u0440\u0443\u0442\u0438\u043d\u0430.',
+        '- 18:00 \u2013 \u0441\u043f\u043e\u0440\u0442 / \u043e\u0442\u0434\u044b\u0445.',
+        `- 21:30 \u2013 \u0440\u0430\u0437\u0433\u0440\u0443\u0437\u043a\u0430, \u0431\u0435\u0437 \u044d\u043a\u0440\u0430\u043d\u043e\u0432.`,
+        `- ${sleep} \u2013 \u0441\u043e\u043d.`,
+        '\u0415\u0441\u043b\u0438 \u043d\u0443\u0436\u0435\u043d \u043d\u0435\u0434\u0435\u043b\u044c\u043d\u044b\u0439 \u043f\u043b\u0430\u043d \u2014 \u0441\u043a\u0430\u0436\u0438 \u0446\u0435\u043b\u0438 \u0438 \u0437\u0430\u043d\u044f\u0442\u043e\u0441\u0442\u044c.'
+      ].join('\n');
+    }
+    return [
+      '\u041f\u0440\u043e\u0441\u0442\u043e\u0439 \u043f\u043b\u0430\u043d \u043d\u0430 \u043d\u0435\u0434\u0435\u043b\u044e:',
+      '- \u041f\u043d: \u0433\u043b\u0430\u0432\u043d\u0430\u044f \u0446\u0435\u043b\u044c + 1\u20132 \u043a\u043b\u044e\u0447\u0435\u0432\u044b\u0435 \u0437\u0430\u0434\u0430\u0447\u0438.',
+      '- \u0412\u0442: \u043f\u0440\u043e\u0434\u0432\u0438\u0436\u0435\u043d\u0438\u0435 \u043f\u043e \u043f\u0440\u043e\u0435\u043a\u0442\u0443, \u0440\u0443\u0442\u0438\u043d\u0430.',
+      '- \u0421\u0440: \u0433\u043b\u0443\u0431\u043e\u043a\u0430\u044f \u0440\u0430\u0431\u043e\u0442\u0430 (2 \u0431\u043b\u043e\u043a\u0430).',
+      '- \u0427\u0442: \u0434\u043e\u0432\u0435\u0441\u0442\u0438 \u043d\u0430\u0447\u0430\u0442\u043e\u0435, \u043c\u0435\u043b\u043e\u0447\u0438.',
+      '- \u041f\u0442: \u0438\u0442\u043e\u0433\u0438 \u043d\u0435\u0434\u0435\u043b\u0438, \u043f\u043b\u0430\u043d \u043d\u0430 \u0441\u043b\u0435\u0434\u0443\u044e\u0449\u0443\u044e.',
+      '\u0421\u043a\u0430\u0436\u0438 \u0446\u0435\u043b\u044c \u0438 \u0441\u043a\u043e\u043b\u044c\u043a\u043e \u0432\u0440\u0435\u043c\u0435\u043d\u0438 \u0432 \u0434\u0435\u043d\u044c \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u043e.'
+    ].join('\n');
+  }
+
+  return [
+    'Here is a simple weekly plan:',
+    '- Mon: define the main goal and 1-2 key tasks.',
+    '- Tue: progress on the core tasks.',
+    '- Wed: deep work block (2 focus sessions).',
+    '- Thu: finish open items and admin tasks.',
+    '- Fri: review and plan next week.',
+    'Tell me your available hours and priorities to customize it.'
+  ].join('\n');
+}
+
+function buildExplainReply(prompt: string, lang: Lang): string {
+  const topic = extractTopic(prompt, lang);
+  if (lang === 'ru') {
+    return [
+      `\u041a\u0440\u0430\u0442\u043a\u043e \u043e \u0442\u0435\u043c\u0435: ${topic || '\u044d\u0442\u043e'}.`,
+      '\u041e\u043f\u0440\u0435\u0434\u0435\u043b\u0435\u043d\u0438\u0435: \u0447\u0442\u043e \u044d\u0442\u043e \u0442\u0430\u043a\u043e\u0435 \u0438 \u0437\u0430\u0447\u0435\u043c \u043d\u0443\u0436\u043d\u043e.',
+      '\u041a\u043b\u044e\u0447\u0435\u0432\u044b\u0435 \u0438\u0434\u0435\u0438: 3\u20134 \u043f\u0443\u043d\u043a\u0442\u0430 \u043f\u043e \u0441\u0443\u0442\u0438.',
+      '\u041f\u0440\u0438\u043c\u0435\u0440: \u043a\u043e\u0440\u043e\u0442\u043a\u0438\u0439 \u043a\u0435\u0439\u0441 \u0438\u0437 \u0436\u0438\u0437\u043d\u0438.',
+      '\u0425\u043e\u0447\u0435\u0448\u044c \u043f\u043e\u0434\u0440\u043e\u0431\u043d\u0435\u0435 \u0438\u043b\u0438 \u0441 \u043f\u0440\u0438\u043c\u0435\u0440\u043e\u043c \u043a\u043e\u0434\u0430?'
+    ].join('\n');
+  }
+  return [
+    `Quick explanation of ${topic || 'the topic'}:`,
+    'Definition: what it is and why it matters.',
+    'Key points: 3-4 essential ideas.',
+    'Example: a short real-world case.',
+    'Want a deeper dive or a code example?'
+  ].join('\n');
+}
+
+function buildIdeaReply(prompt: string, lang: Lang): string {
+  const topic = extractTopic(prompt, lang);
+  const base = lang === 'ru'
+    ? `\u0412\u043e\u0442 5 \u0438\u0434\u0435\u0439 \u043f\u043e \u0442\u0435\u043c\u0435: ${topic || '\u0442\u0432\u043e\u0439 \u0437\u0430\u043f\u0440\u043e\u0441'}`
+    : `Here are 5 ideas for: ${topic || 'your request'}`;
+  const items = lang === 'ru'
+    ? [
+        '\u041b\u0435\u0433\u043a\u0438\u0439 MVP \u0441 \u043e\u0434\u043d\u043e\u0439 \u0433\u043b\u0430\u0432\u043d\u043e\u0439 \u0444\u0443\u043d\u043a\u0446\u0438\u0435\u0439.',
+        '\u0410\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044f \u0440\u0443\u0442\u0438\u043d\u044b \u0447\u0435\u0440\u0435\u0437 \u0448\u0430\u0431\u043b\u043e\u043d\u044b \u0438 \u043f\u0440\u0435\u0441\u0435\u0442\u044b.',
+        '\u0424\u043e\u043a\u0443\u0441 \u043d\u0430 \u043e\u0434\u043d\u0443 \u0430\u0443\u0434\u0438\u0442\u043e\u0440\u0438\u044e \u0438 \u0431\u043e\u043b\u044c.',
+        '\u0427\u0435\u043a\u043b\u0438\u0441\u0442 + \u043e\u0442\u0447\u0435\u0442 \u0432 \u043e\u0434\u0438\u043d \u043a\u043b\u0438\u043a.',
+        '\u0418\u0433\u0440\u043e\u0432\u043e\u0439 \u043c\u0435\u0445\u0430\u043d\u0438\u0437\u043c \u0434\u043b\u044f \u0432\u043e\u0432\u043b\u0435\u0447\u0435\u043d\u0438\u044f.'
+      ]
+    : [
+        'A lightweight MVP with one core feature.',
+        'Automate the routine with templates and presets.',
+        'Focus on a single audience and pain point.',
+        'Checklist + one-click report.',
+        'Gamified flow to boost engagement.'
+      ];
+  return [base, ...items.map((item, i) => `${i + 1}. ${item}`)].join('\n');
+}
+
+function buildHowToReply(prompt: string, lang: Lang): string {
+  const topic = extractTopic(prompt, lang);
+  if (lang === 'ru') {
+    return [
+      `\u041f\u043e\u0448\u0430\u0433\u043e\u0432\u043e \u043f\u043e \u0442\u0435\u043c\u0435: ${topic || '\u0437\u0430\u0434\u0430\u0447\u0430'}`,
+      '1. \u041e\u043f\u0440\u0435\u0434\u0435\u043b\u0438 \u0446\u0435\u043b\u044c \u0438 \u043a\u0440\u0438\u0442\u0435\u0440\u0438\u0438 \u0443\u0441\u043f\u0435\u0445\u0430.',
+      '2. \u0420\u0430\u0437\u0431\u0435\u0439 \u0437\u0430\u0434\u0430\u0447\u0443 \u043d\u0430 3\u20135 \u0448\u0430\u0433\u043e\u0432.',
+      '3. \u041e\u0442\u043c\u0435\u0442\u044c \u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u0438\u044f \u0438 \u0440\u0438\u0441\u043a\u0438.',
+      '4. \u0421\u0434\u0435\u043b\u0430\u0439 \u043c\u0438\u043d\u0438\u043c\u0430\u043b\u044c\u043d\u044b\u0439 \u0432\u0430\u0440\u0438\u0430\u043d\u0442 \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u044c.',
+      '5. \u0414\u043e\u0432\u0435\u0434\u0438 \u0434\u043e \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442\u0430 \u0438 \u0437\u0430\u0444\u0438\u043a\u0441\u0438\u0440\u0443\u0439 \u0448\u0430\u0431\u043b\u043e\u043d.',
+      '\u0421\u043a\u0430\u0436\u0438 \u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u0438\u044f, \u0438 \u044f \u0430\u0434\u0430\u043f\u0442\u0438\u0440\u0443\u044e \u0448\u0430\u0433\u0438.'
+    ].join('\n');
+  }
+  return [
+    `Step-by-step for: ${topic || 'your task'}`,
+    '1. Define the goal and success criteria.',
+    '2. Break it into 3-5 steps.',
+    '3. Note constraints and risks.',
+    '4. Build a minimal version and validate.',
+    '5. Iterate and document a repeatable flow.',
+    'Share constraints and I will tailor the steps.'
+  ].join('\n');
+}
+
+function extractTimes(text: string): string[] {
+  const matches = text.match(/\b([01]?\d|2[0-3])[:.][0-5]\d\b/g);
+  return matches ? matches : [];
+}
+
+function extractTopic(text: string, lang: Lang): string {
+  const tokens = tokenizeWords(text).filter((t) => t.length > 2);
+  const stopwords = lang === 'ru'
+    ? new Set(['\u0447\u0442\u043e', '\u043a\u0430\u043a', '\u0437\u0430\u0447\u0435\u043c', '\u043f\u043e\u0447\u0435\u043c\u0443', '\u044d\u0442\u043e', '\u043c\u043d\u0435', '\u043d\u0443\u0436\u043d\u043e', '\u043d\u0430\u043f\u0438\u0448\u0438', '\u043e\u0431\u044a\u044f\u0441\u043d\u0438', '\u043f\u043e\u044f\u0441\u043d\u0438', '\u043f\u043b\u0430\u043d', '\u0438\u0434\u0435\u044f', '\u0438\u0434\u0435\u0438'])
+    : new Set(['what', 'how', 'why', 'the', 'and', 'with', 'need', 'make', 'write', 'explain', 'plan', 'idea', 'ideas']);
+  const filtered = tokens.filter((t) => !stopwords.has(t));
+  return filtered.slice(0, 6).join(' ');
+}
+
+function seededPick(seed: string, items: string[]): string {
+  const index = Math.abs(hashString(seed)) % items.length;
+  return items[index];
+}
+
+function hashString(value: string): number {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash;
 }
 
 function loadModel(): MarkovModel | null {
